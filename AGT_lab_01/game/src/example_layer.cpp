@@ -12,23 +12,30 @@ example_layer::example_layer()
 	// hide the mouse and lock it inside the window
 	//engine::application::window().hide_mouse_cursor();
 
-	float radius = 2.f;
+	float radius = 1.f;
 	uint32_t stacks = 10;
 	uint32_t slices = 20;
+
+	m_position = 0.0f;
+	m_speed = 5.0f;
 
 	engine::ref<engine::sphere> m_sphere_shape = engine::sphere::create(stacks, slices, radius);
 	engine::game_object_properties sphere_props;
 	sphere_props.meshes = { m_sphere_shape->mesh() };
-	sphere_props.position = { 0.0f, 1.5f, -10.0f };
+	sphere_props.position = { 0.f, 1.5f, -10.0f };
 
 	m_sphere = engine::game_object::create(sphere_props);
 }
 
 example_layer::~example_layer() {}
 
-void example_layer::on_update()
+void example_layer::on_update(const engine::timestep& time_step)
 {
-
+	m_position += m_speed * time_step;
+	if ((m_position > 10.0f && m_speed > 0.0f) || (m_position < -10.0f && m_speed < 0.0f))
+	{
+		m_speed = -m_speed;
+	}
 }
 
 void example_layer::on_render()
@@ -39,12 +46,26 @@ void example_layer::on_render()
 	const auto colour_shader = engine::renderer::shaders_library()->get("colour");
 	engine::renderer::begin_scene(m_3d_camera, colour_shader);
 
-	glm::vec4 sphere_colour = glm::vec4(1.f, 1.f, 1.f, 1.f);
-	glm::vec3 sphere_position = glm::vec3(0.0f, 1.5f, -20.0f);
+	glm::vec4 sphere_colour_1 = glm::vec4(1.f, 0.3f, 0.2f, 1.f);
+	glm::vec3 sphere_position_1 = glm::vec3(m_position, 1.5f, -20.0f);
 
-	std::dynamic_pointer_cast<engine::gl_shader>(colour_shader)->set_uniform("a_color", sphere_colour);
-	glm::mat4 transform_1 = glm::translate(glm::mat4(1.0f), sphere_position);
+	glm::vec4 sphere_colour_2 = glm::vec4(0.2f, 1.f, 0.3f, 1.f);
+	glm::vec3 sphere_position_2 = glm::vec3(10.f, m_position+1.5f, -25.0f);
+
+	glm::vec4 sphere_colour_3 = glm::vec4(0.3f, 0.2f, 1.f, 1.f);
+	glm::vec3 sphere_position_3 = glm::vec3(0.f, -1.5f, m_position-15.f);
+
+	std::dynamic_pointer_cast<engine::gl_shader>(colour_shader)->set_uniform("a_color", sphere_colour_1);
+	glm::mat4 transform_1 = glm::translate(glm::mat4(1.0f), sphere_position_1);
 	engine::renderer::submit(colour_shader, m_sphere->meshes().at(0), transform_1);
+
+	std::dynamic_pointer_cast<engine::gl_shader>(colour_shader)->set_uniform("a_color", sphere_colour_2);
+	glm::mat4 transform_2 = glm::translate(glm::mat4(1.0f), sphere_position_2);
+	engine::renderer::submit(colour_shader, m_sphere->meshes().at(0), transform_2);
+
+	std::dynamic_pointer_cast<engine::gl_shader>(colour_shader)->set_uniform("a_color", sphere_colour_3);
+	glm::mat4 transform_3 = glm::translate(glm::mat4(1.0f), sphere_position_3);
+	engine::renderer::submit(colour_shader, m_sphere->meshes().at(0), transform_3);
 
 	engine::renderer::end_scene();
 }
@@ -58,5 +79,24 @@ void example_layer::on_event(engine::event& event)
 		{
 			engine::render_command::toggle_wireframe();
 		}
+		if (e.key_code() == engine::key_codes::KEY_UP)
+		{
+			m_speed = m_speed + 1.0f;
+			// faster
+		}
+		if (e.key_code() == engine::key_codes::KEY_DOWN)
+		{
+			m_speed = m_speed - 1.0f;
+			// slower
+		}
+		if (m_speed > 100.0f)
+		{
+			m_speed = 100.0f;
+		}
+		else if (m_speed < -100.0f)
+		{
+			m_speed = -100.0f;
+		}
+
 	}
 }

@@ -29,18 +29,54 @@ engine::application::~application()
 
 void engine::application::run()
 {
+    m_last_frame_time = static_cast<float>(glfwGetTime());
+    
     while (s_running)
     {
+        const auto time = static_cast<float>(glfwGetTime());
+        timestep time_step = time - m_last_frame_time;
+        m_last_frame_time = time;
 
         for (auto* layer : m_layers_stack)
         {
-			layer->on_update();
+			layer->on_update(time_step);
             layer->on_render();
         }
 
         m_window->on_update();
     }
+}
 
+// run at fixed frame rate
+void engine::application::run_fixed() {
+	const float frame_rate = 120.0f;
+	const float fixed_time_step = 1.0f / frame_rate;
+	float accumulator = 0.0f;
+	m_last_frame_time = static_cast<float>(glfwGetTime());
+	while (s_running)
+	{
+		const auto time = static_cast<float>(glfwGetTime());
+		timestep time_step = time - m_last_frame_time;
+		m_last_frame_time = time;
+		accumulator += time_step;
+
+		while (accumulator >= fixed_time_step)
+		{
+			for (auto* layer : m_layers_stack)
+			{
+				layer->on_update(fixed_time_step);
+			}
+
+			accumulator -= fixed_time_step;
+		}
+
+		for (auto* layer : m_layers_stack)
+		{
+			layer->on_render();
+		}
+
+		m_window->on_update();
+	}
 }
 
 void engine::application::on_event(event& event) 

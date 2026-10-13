@@ -19,7 +19,7 @@ namespace engine
 		virtual void on_detach() {}
 		/// \brief Runs when application calls the on_update method.
 		/// Should happen every frame.
-		virtual void on_update() {}
+		virtual void on_update(const engine::timestep& time_step) {}
 		/// \brief Render method.
 		virtual void on_render() {}
 		/// \brief Runs whenever an event gets sent to the layer.
