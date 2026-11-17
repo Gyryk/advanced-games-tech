@@ -1,0 +1,3 @@
+# Exported reports are binary documents; their PDF syntax is not source text.
+*.pdf binary
+*.docx binary

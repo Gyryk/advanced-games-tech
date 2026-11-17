@@ -34,3 +34,37 @@ Complete these sections as you work:
 
 Do not claim that the AI-generated implementation was independently written by
 you, or that it has been built/playtested where it has not.
+
+## Follow-up on 17 November 2026
+
+The student reported a successful Windows/Visual Studio 2026 playtest, retained
+the generated visual/audio style, identified excessive gameplay ease, and asked
+for Milestone 1 documentation with limited additional scope.
+
+AI-assisted changes in response:
+
+- A small parameter balance pass (timer, shield, tagging, pursuit and jumping)
+  with corresponding regression tests and updated control text.
+- A two-page interim report draft, a criterion review and an asset/licence register.
+- A required FMOD credit on the existing intro screen.
+
+The student's feedback that everything ran as expected applies to the prior
+prototype. The revised balance still needs student playtesting. The report is
+an AI-assisted draft for the student to check and revise, not an independent
+student-authored account or a completed AI appendix.
+
+Asset authorship clarification: the casino-specific assets were generated from
+scratch by an AI-written Python script. The source script is available, but
+“made from scratch” alone does not explain who produced the code. The university
+brief requires the assistance to be acknowledged. The template font, engine and
+libraries must also retain their separate attribution/licence descriptions.
+
+For this follow-up, include the full feedback prompt, assistant messages and
+code/document outputs from the conversation export. Explain what was retained
+and any subsequent student changes. Do not replace those records with this
+summary alone.
+
+The follow-up also produced `SUBMISSION_GUIDE.md` from the coursework deliverables
+and `SOURCE_CODE_GUIDE.md` from the current source and a read-only review of the
+student-provided `computer-graphics-module` and `asteroids` repositories. No code
+from those comparison repositories was incorporated into the casino.

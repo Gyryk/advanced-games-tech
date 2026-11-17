@@ -1,7 +1,7 @@
 # The House Collects — placeholder prototype
 
 A single terrace heist built on the supplied C++17/OpenGL game template. Steal
-$600 in chips and return to the EXIT pad within 120 seconds. Four guards can
+$600 in chips and return to the EXIT pad within 60 seconds. Four guards can
 catch you; three successful tags end the round. Ordinary chips alone supply
 $600. The $200 gold chip is an optional shortcut that triggers hard mode.
 
@@ -24,11 +24,12 @@ The added game modules are header-only, included by `example_layer.cpp`, which
 is already in the solution. No project regeneration is required. Use Show All
 Files to see them in Visual Studio, or add the headers to the project if desired.
 
-**Build status:** the complete Windows executable has not been built or run in
-this Linux environment. Headless rules and geometry tests pass. A Linux syntax
-probe of the engine adapter encounters the template's existing MSVC-specific
-headers; it is not a Windows build. Rendering, model import, audio playback,
-controls and difficulty balance still require the Windows checks below.
+**Build status:** the student reported on 17 November 2026 that the original
+prototype builds/runs on Windows with Visual Studio 2026, and that gameplay,
+visuals and audio work as expected. This is a user-reported playtest, not a
+Windows test executed by the assistant. The subsequent balance changes
+(60-second round, 3-second shield, faster tags/pursuit and a stronger jump)
+pass headless regression checks but still need a Windows retest.
 
 ## Controls and pickups
 
@@ -47,8 +48,8 @@ controls and difficulty balance still require the Windows checks below.
 |---|---|
 | Red chip | $50, collected once |
 | Gold chip | $200 and alarm: greater guard detection range and chase speed |
-| Blue pass | Clears alarm, sends guards back to their routes, grants 2 seconds of protection |
-| Green pyramid | 8-second shield |
+| Blue pass | Clears alarm, sends guards back to their routes, grants 1 second of protection |
+| Green pyramid | 3-second shield |
 
 A guard's red body marks its attack wind-up. Walk or jump away before the tag.
 The guards use patrol, chase, attack and return states, with local obstacle
@@ -122,7 +123,7 @@ The script refuses to overwrite existing images unless `--force` is passed.
 | Camera | Smoothed player-follow camera, keyboard orbit, camera-relative movement |
 | Imported meshes | Three distinct original OBJ placeholders loaded through the engine; replace/polish as desired |
 | Theme | Small casino terrace: felt tables, chips, sign, exit carpet, thief and security |
-| Audio | Six original event cues and new looping background cue; playback needs Windows verification |
+| Audio | Six original event cues and new looping background cue; initial playback confirmed by the student; retain cues |
 | HUD | Score/target, health, countdown, alarm status, shield duration |
 | Lighting | Directional moonlight and alarm point light |
 | Two effects | Camera shake and alpha-blended damage flash |
@@ -132,7 +133,10 @@ The script refuses to overwrite existing images unless `--force` is passed.
 | Difficulty | Gold chip activates hard mode; blue pass restores easy mode |
 | Documentation | This is an implementation guide, not the required assessed reports |
 
-This is a placeholder implementation, not a claim of a particular mark. Before
+This is a stylised prototype, not a claim of a particular mark. The current
+visual style and synthesised audio can be retained; Milestone 1 does not demand
+photorealism or downloaded assets. Correct mapping, lighting, transforms and
+theme coherence remain the visual checks. Before
 Milestone 1, visually verify the normals, texture placement, model import,
 transforms and camera, then write the maximum-two-page interim report from what
 actually works. The final report (7–15 pages), asset/source ledger, AI appendix
@@ -172,3 +176,20 @@ python tests/validate_assets.py
 These do not validate OpenGL output, FMOD or Windows linking. They exercise
 scoring, alarms, protection, physics/collisions, guard transitions, pause/restart,
 win/loss rules and primitive index/normal/UV/winding correctness.
+
+## Milestone 1 documentation
+
+- `docs/MILESTONE_1_REPORT.md`: editable report source.
+- `docs/MILESTONE_1_REPORT.docx`: two-page draft with an explicit page break.
+- `docs/MILESTONE_1_REPORT.pdf`: verified two-page PDF draft.
+- `docs/ASSET_REGISTER.md`: sources, creation methods and licence evidence.
+- `docs/MILESTONE_1_REVIEW.md`: criterion checklist and Milestone 2 scope.
+- `docs/SUBMISSION_GUIDE.md`: exact Windows cleanup, source ZIP and Moodle steps.
+- `docs/SOURCE_CODE_GUIDE.md`: walkthrough and review against the supplied GitHub examples.
+- `docs/AI_ASSISTANCE.md`: assistance record; attach the complete conversation
+  transcript and explain how you used/modified its outputs before submission.
+
+Add the student name/ID and review the report against the final Windows build.
+The PDF is the verified pagination reference; Word pagination should be checked
+on your PC before exporting. The asset register and assistance notes are
+supporting documents, not extra pages of the assessed two-page interim report.

@@ -23,3 +23,8 @@ Do not assume a free download has a suitable reuse licence.
 | File / slot | Creator | Source URL | Download date | Licence / attribution | Edits |
 |---|---|---|---|---|---|
 | (Add each sourced replacement here) | | | | | |
+
+Complete asset-by-asset sources, creation methods and inherited licence evidence
+are recorded in [`docs/ASSET_REGISTER.md`](../../../docs/ASSET_REGISTER.md).
+The generated assets can be described as made from scratch **with AI assistance**;
+the inherited Arial font and university engine/libraries are not original work.
