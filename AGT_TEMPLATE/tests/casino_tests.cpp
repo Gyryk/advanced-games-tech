@@ -62,10 +62,10 @@ int main()
     for (const auto& p:g.pickups) if (p.kind==pickup_kind::security_pass) {g.player_position=p.position;break;}
     advance(g,1); expect(!g.alarm,"security pass restores easy mode");
     for (const auto& p:g.pickups) if (p.kind==pickup_kind::shield) {g.player_position=p.position;break;}
-    advance(g,1); expect(g.shield_time>7.9f,"shield starts");
+    advance(g,1); expect(g.shield_time>2.9f && g.shield_time<=3.f,"shield lasts three seconds");
     g.toggle_pause(); const float shield=g.shield_time, time=g.remaining;
     advance(g,120); expect(g.remaining==time&&g.shield_time==shield,"pause freezes timer and powerup");
-    g.toggle_pause(); advance(g,1000); expect(g.shield_time==0.f,"shield expires");
+    g.toggle_pause(); advance(g,370); expect(g.shield_time==0.f,"shield expires promptly");
 
     g=isolated(); g.pickups.clear(); g.player_position={0,4};
     advance(g,60,{{1,0},false}); expect(g.player_velocity.x>4.f,"movement accelerates");
@@ -112,6 +112,22 @@ int main()
     advance(g,1); expect(g.guards[0].state==guard_state::attack,"chase enters attack");
     g.shield_time=8.f; advance(g,50); expect(g.guards[0].state==guard_state::returning,"attack enters recovery");
     g.player_position={-10,0}; advance(g,600); expect(g.guards[0].state==guard_state::patrol,"recovery returns to patrol");
+
+    // Regression checks for the first Windows playtest: tags must be prompt,
+    // but a correctly timed jump must still avoid one. Alarm pursuit must
+    // close distance faster than ordinary pursuit.
+    g=isolated(); g.pickups.clear(); g.player_position={0,4};
+    attacker.position={0,4.8f}; attacker.state=guard_state::attack; attacker.state_time=0.f;
+    g.guards={attacker}; advance(g,12);
+    expect(g.health==3,"tag still has a short warning");
+    advance(g,12); expect(g.health==2,"tag lands within a quarter second");
+    g=isolated(); g.pickups.clear(); g.player_position={0,4}; g.guards={attacker};
+    advance(g,24,{{},true}); expect(g.health==3&&g.player_height>.55f,"jump avoids a prompt tag");
+    game easy=isolated(); easy.pickups.clear(); easy.player_position={0,0};
+    attacker.position={0,5}; attacker.state=guard_state::chase; attacker.state_time=0.f;
+    easy.guards={attacker}; game hard=easy; hard.alarm=true;
+    advance(easy,60); advance(hard,60);
+    expect(length(hard.guards[0].position-hard.player_position)<length(easy.guards[0].position-easy.player_position)-.5f,"alarm materially increases pursuit speed");
 
     geometry_checks(box_geometry()); geometry_checks(cylinder_geometry());
     geometry_checks(pyramid_geometry()); geometry_checks(floor_geometry());

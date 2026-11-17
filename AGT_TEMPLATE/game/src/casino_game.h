@@ -44,7 +44,17 @@ namespace casino
         static constexpr float arena_x = 12.f, arena_z = 10.f;
         static constexpr float player_radius = .38f;
         static constexpr int target_score = 600;
-        static constexpr float round_seconds = 120.f;
+        // First balance pass following the Windows playtest. Keep these in one
+        // place so Milestone 2 tuning does not require changing the rule logic.
+        static constexpr float round_seconds = 60.f;
+        static constexpr float shield_seconds = 3.f;
+        static constexpr float tag_windup = .18f;
+        static constexpr float tag_grace = .9f;
+        static constexpr float pass_grace = 1.f;
+        static constexpr float easy_chase_speed = 4.2f, hard_chase_speed = 5.5f;
+        static constexpr float easy_detection = 5.5f, hard_detection = 10.f;
+        static constexpr float return_pause = .65f, return_reacquire = .9f;
+        static constexpr float jump_speed = 6.8f, gravity = 20.f;
         inline static const vec2 exit_position{0.f, 9.f};
 
         round_state state = round_state::intro;
@@ -157,8 +167,8 @@ namespace casino
             // without frame-rate-dependent movement. Jump uses gravity.
             player_velocity = (player_velocity + direction * (42.f * dt)) * std::exp(-8.f * dt);
             if (length(direction) > .01f) heading = std::atan2(direction.x, direction.z);
-            if (input.jump && player_height <= .001f) vertical_velocity = 6.f;
-            vertical_velocity -= 18.f * dt;
+            if (input.jump && player_height <= .001f) vertical_velocity = jump_speed;
+            vertical_velocity -= gravity * dt;
             player_height = (std::max)(0.f, player_height + vertical_velocity * dt);
             if (player_height == 0.f) vertical_velocity = 0.f;
 
@@ -196,10 +206,10 @@ namespace casino
                 case pickup_kind::chip: score += 50; sounds.push_back(sound_event::collect); break;
                 case pickup_kind::jackpot: score += 200; alarm = true; sounds.push_back(sound_event::alarm); break;
                 case pickup_kind::security_pass:
-                    alarm = false; invulnerable_time = (std::max)(invulnerable_time, 2.f);
+                    alarm = false; invulnerable_time = (std::max)(invulnerable_time, pass_grace);
                     for (auto& g : guards) { g.state = guard_state::returning; g.state_time = 0.f; }
                     sounds.push_back(sound_event::powerup); break;
-                case pickup_kind::shield: shield_time = 8.f; sounds.push_back(sound_event::powerup); break;
+                case pickup_kind::shield: shield_time = shield_seconds; sounds.push_back(sound_event::powerup); break;
                 }
             }
         }
@@ -225,8 +235,8 @@ namespace casino
         {
             g.state_time += dt;
             const float distance = length(player_position - g.position);
-            const float detection = alarm ? 9.f : 4.4f;
-            const float speed = alarm ? 3.8f : 2.5f;
+            const float detection = alarm ? hard_detection : easy_detection;
+            const float speed = alarm ? hard_chase_speed : easy_chase_speed;
             switch (g.state)
             {
             case guard_state::patrol:
@@ -244,11 +254,11 @@ namespace casino
                 break;
             case guard_state::attack:
                 // Telegraph the tag, giving the player time to step or jump away.
-                if (g.state_time >= .4f)
+                if (g.state_time >= tag_windup)
                 {
                     if (distance < 1.25f && player_height < .55f && shield_time <= 0.f && invulnerable_time <= 0.f)
                     {
-                        --health; invulnerable_time = 1.8f; hit_flash = .45f;
+                        --health; invulnerable_time = tag_grace; hit_flash = .45f;
                         player_velocity = unit(player_position - g.position) * 9.f;
                         sounds.push_back(sound_event::damage);
                         if (health <= 0) finish(round_state::caught);
@@ -260,9 +270,9 @@ namespace casino
                 steer(g, g.route[g.waypoint], 1.8f, dt);
                 // Recovery prevents repeated contact damage and makes a stolen
                 // security pass useful even if a guard was already pursuing.
-                if (g.state_time > 2.f && length(g.position - g.route[g.waypoint]) < .3f)
+                if (g.state_time > return_pause && length(g.position - g.route[g.waypoint]) < .3f)
                 { g.state = guard_state::patrol; g.state_time = 0.f; }
-                else if (g.state_time > 3.f && distance < detection)
+                else if (g.state_time > return_reacquire && distance < detection)
                 { g.state = guard_state::chase; g.state_time = 0.f; }
                 break;
             }

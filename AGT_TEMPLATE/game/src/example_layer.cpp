@@ -348,10 +348,11 @@ void example_layer::draw_hud()
             text("THE HOUSE COLLECTS",220,245,.85f,glm::vec4(gold,1));
             text("Steal $600 in chips. Reach the exit before security catches you.",220,298,.42f);
             text("RED chips: $50     GOLD chip: $200, but triggers the alarm",220,346,.42f);
-            text("BLUE pass: clears alarm     GREEN pyramid: 8-second shield",220,388,.42f);
+            text("BLUE pass: clears alarm     GREEN pyramid: " + std::to_string(static_cast<int>(casino::game::shield_seconds)) + "-second shield",220,388,.42f);
             text("Guards flash red before a tag. Jump or move away to dodge.",220,430,.42f);
             text("WASD move   SPACE jump   Q/E orbit camera",220,472,.42f);
             text("PRESS ENTER TO START",220,550,.65f,glm::vec4(cyan,1));
+            text("FMOD Studio by Firelight Technologies Pty Ltd.",220,584,.25f);
         }
         else if (m_game.state == casino::round_state::paused)
         {
