@@ -5,7 +5,15 @@ namespace casino::assets
 {
     // Paths are relative to game/, the Visual Studio working directory.
     // Keep downloaded models with their companion MTL and texture files.
-    struct model_slot { const char* path; float height; float yaw_degrees; };
+    struct model_slot
+    {
+        const char* path;
+        float height;
+        float yaw_degrees;
+    };
+    // These settings are defined in a header included by several .cpp files.
+    // 'inline' allows the shared definitions; 'constexpr' makes their values
+    // fixed at compile time. Edit them here, then rebuild to change an asset.
     inline constexpr model_slot chair{"assets/casino/models/chair.obj", 1.3f, 0.f};
     inline constexpr model_slot lamp{"assets/casino/models/lamp.obj", 3.f, 0.f};
     inline constexpr model_slot planter{"assets/casino/models/planter.obj", 1.4f, 0.f};

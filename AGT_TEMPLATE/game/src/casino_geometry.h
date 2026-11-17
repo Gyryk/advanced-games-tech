@@ -6,15 +6,28 @@
 
 namespace casino
 {
-    struct vertex { glm::vec3 position, normal; glm::vec2 uv; };
-    struct geometry { std::vector<vertex> vertices; std::vector<uint32_t> indices; };
+    struct vertex
+    {
+        glm::vec3 position;
+        glm::vec3 normal;
+        glm::vec2 uv;
+    };
+    struct geometry
+    {
+        std::vector<vertex> vertices;
+        std::vector<uint32_t> indices;
+    };
 
+    // 'inline' permits these header-defined functions to be included by multiple
+    // .cpp files. It does not force the compiler to optimise away function calls.
     inline void quad(geometry& g, glm::vec3 a, glm::vec3 b, glm::vec3 c, glm::vec3 d, float repeat = 1.f)
     {
         const auto base = static_cast<uint32_t>(g.vertices.size());
         const auto normal = glm::normalize(glm::cross(b - a, c - a));
-        g.vertices.insert(g.vertices.end(), {{a, normal, {0, 0}}, {b, normal, {repeat, 0}},
-                                             {c, normal, {repeat, repeat}}, {d, normal, {0, repeat}}});
+        g.vertices.push_back({a, normal, {0, 0}});
+        g.vertices.push_back({b, normal, {repeat, 0}});
+        g.vertices.push_back({c, normal, {repeat, repeat}});
+        g.vertices.push_back({d, normal, {0, repeat}});
         g.indices.insert(g.indices.end(), {base, base + 1, base + 2, base, base + 2, base + 3});
     }
 
@@ -33,8 +46,8 @@ namespace casino
     inline geometry cylinder_geometry()
     {
         geometry g;
-        constexpr int sides = 24;
-        constexpr float tau = 6.28318530718f;
+        const int sides = 24;
+        const float tau = 6.28318530718f;
         for (int i = 0; i <= sides; ++i)
         {
             const float u = static_cast<float>(i) / sides, a = tau * u;
@@ -78,7 +91,9 @@ namespace casino
             const auto a = ring[i], b = ring[(i + 1) % 4];
             const auto n = glm::normalize(glm::cross(b - a, tip - a));
             const auto k = static_cast<uint32_t>(g.vertices.size());
-            g.vertices.insert(g.vertices.end(), {{a,n,{0,0}}, {b,n,{1,0}}, {tip,n,{.5f,1}}});
+            g.vertices.push_back({a, n, {0, 0}});
+            g.vertices.push_back({b, n, {1, 0}});
+            g.vertices.push_back({tip, n, {.5f, 1}});
             g.indices.insert(g.indices.end(), {k,k+1,k+2});
         }
         quad(g, ring[3], ring[2], ring[1], ring[0]);

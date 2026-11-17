@@ -16,17 +16,34 @@ namespace casino
         vec2 operator-(vec2 b) const { return {x - b.x, z - b.z}; }
         vec2 operator*(float k) const { return {x * k, z * k}; }
     };
+    // These functions are defined in a header. 'inline' allows more than one
+    // .cpp file to include them without duplicate-definition linker errors.
     inline float dot(vec2 a, vec2 b) { return a.x * b.x + a.z * b.z; }
     inline float length(vec2 a) { return std::sqrt(dot(a, a)); }
-    inline vec2 unit(vec2 a) { const float n = length(a); return n > .0001f ? a * (1.f / n) : vec2{}; }
+    inline vec2 unit(vec2 a)
+    {
+        const float magnitude = length(a);
+        if (magnitude > .0001f) return a * (1.f / magnitude);
+        return {};
+    }
 
     enum class round_state { intro, playing, paused, escaped, caught, timed_out };
     enum class guard_state { patrol, chase, attack, returning };
     enum class pickup_kind { chip, jackpot, security_pass, shield };
     enum class sound_event { collect, alarm, powerup, damage, win, lose };
 
-    struct obstacle { vec2 centre; vec2 half_size; float height; };
-    struct pickup { vec2 position; pickup_kind kind; bool active = true; };
+    struct obstacle
+    {
+        vec2 centre;
+        vec2 half_size;
+        float height;
+    };
+    struct pickup
+    {
+        vec2 position;
+        pickup_kind kind;
+        bool active = true;
+    };
     struct guard
     {
         vec2 position;
@@ -41,6 +58,8 @@ namespace casino
     class game
     {
     public:
+        // 'static' shares each setting between game objects. 'constexpr' makes
+        // it a fixed compile-time value that can be initialised here in the class.
         static constexpr float arena_x = 12.f, arena_z = 10.f;
         static constexpr float player_radius = .38f;
         static constexpr int target_score = 600;
@@ -55,6 +74,7 @@ namespace casino
         static constexpr float easy_detection = 5.5f, hard_detection = 10.f;
         static constexpr float return_pause = .65f, return_reacquire = .9f;
         static constexpr float jump_speed = 6.8f, gravity = 20.f;
+        // 'inline' lets this shared variable be defined in the header as well.
         inline static const vec2 exit_position{0.f, 9.f};
 
         round_state state = round_state::intro;
@@ -70,16 +90,31 @@ namespace casino
         std::vector<obstacle> obstacles;
         std::vector<sound_event> sounds;
 
-        game() { reset(); state = round_state::intro; }
+        game()
+        {
+            reset();
+            state = round_state::intro;
+        }
 
         void reset()
         {
             state = round_state::playing;
-            player_position = {0.f, 8.f}; player_velocity = {};
-            player_height = vertical_velocity = heading = 0.f;
-            score = 0; health = 3; remaining = round_seconds; elapsed = 0.f;
-            shield_time = invulnerable_time = hit_flash = 0.f; alarm = false;
-            sounds.clear(); pickups.clear(); guards.clear();
+            player_position = {0.f, 8.f};
+            player_velocity = {};
+            player_height = 0.f;
+            vertical_velocity = 0.f;
+            heading = 0.f;
+            score = 0;
+            health = 3;
+            remaining = round_seconds;
+            elapsed = 0.f;
+            shield_time = 0.f;
+            invulnerable_time = 0.f;
+            hit_flash = 0.f;
+            alarm = false;
+            sounds.clear();
+            pickups.clear();
+            guards.clear();
             // Tables have solid footprints; the two low crates can be jumped.
             obstacles = {{{-5.f, -3.f}, {1.8f, 1.f}, 1.25f},
                          {{5.f, -3.f}, {1.8f, 1.f}, 1.25f},
@@ -89,22 +124,31 @@ namespace casino
                          {{2.f, 0.f}, {.55f, .55f}, .5f}};
             // 12 ordinary chips alone suffice: the jackpot is a voluntary risk.
             for (float x : {-9.f, -3.f, 3.f, 9.f})
+            {
                 for (float z : {-7.f, 0.f, 7.f})
+                {
                     pickups.push_back({{x, z}, pickup_kind::chip});
+                }
+            }
             pickups.push_back({{0.f, -7.f}, pickup_kind::jackpot});
             pickups.push_back({{-10.f, 4.5f}, pickup_kind::security_pass});
             pickups.push_back({{10.f, -4.5f}, pickup_kind::security_pass});
             pickups.push_back({{-10.f, -4.5f}, pickup_kind::shield});
             pickups.push_back({{10.f, 4.5f}, pickup_kind::shield});
             for (float x : {-8.f, 8.f})
+            {
                 for (float z : {-5.5f, 5.5f})
                 {
                     guard g;
-                    g.route = {{{x - 1.f, z - 1.f}, {x + 1.f, z - 1.f},
-                                {x + 1.f, z + 1.f}, {x - 1.f, z + 1.f}}};
-                    g.position = g.route[0]; g.waypoint = 1;
+                    g.route[0] = {x - 1.f, z - 1.f};
+                    g.route[1] = {x + 1.f, z - 1.f};
+                    g.route[2] = {x + 1.f, z + 1.f};
+                    g.route[3] = {x - 1.f, z + 1.f};
+                    g.position = g.route[0];
+                    g.waypoint = 1;
                     guards.push_back(g);
                 }
+            }
         }
 
         void toggle_pause()
@@ -121,8 +165,10 @@ namespace casino
             for (const auto& box : obstacles)
             {
                 if (feet >= box.height) continue;
-                const vec2 nearest{std::clamp(p.x, box.centre.x - box.half_size.x, box.centre.x + box.half_size.x),
-                                   std::clamp(p.z, box.centre.z - box.half_size.z, box.centre.z + box.half_size.z)};
+                // Clamp each coordinate to the box edges to find the nearest point.
+                const float nearest_x = std::clamp(p.x, box.centre.x - box.half_size.x, box.centre.x + box.half_size.x);
+                const float nearest_z = std::clamp(p.z, box.centre.z - box.half_size.z, box.centre.z + box.half_size.z);
+                const vec2 nearest{nearest_x, nearest_z};
                 if (length(p - nearest) < radius) return true;
             }
             return false;
@@ -138,13 +184,20 @@ namespace casino
             shield_time = (std::max)(0.f, shield_time - dt);
             invulnerable_time = (std::max)(0.f, invulnerable_time - dt);
             hit_flash = (std::max)(0.f, hit_flash - dt);
-            if (remaining <= 0.f) { finish(round_state::timed_out); return; }
+            if (remaining <= 0.f)
+            {
+                finish(round_state::timed_out);
+                return;
+            }
 
             update_player(dt, input);
             collect_pickups();
             // Reaching the exit wins before another guard can tag the player.
             if (score >= target_score && length(player_position - exit_position) < 1.25f)
-            { finish(round_state::escaped); return; }
+            {
+                finish(round_state::escaped);
+                return;
+            }
             for (auto& g : guards)
             {
                 update_guard(g, dt);
@@ -177,20 +230,39 @@ namespace casino
             next.x += player_velocity.x * dt;
             if (!blocked(next, player_radius, player_height)) player_position = next;
             else player_velocity.x = 0.f;
-            next = player_position; next.z += player_velocity.z * dt;
+            next = player_position;
+            next.z += player_velocity.z * dt;
             if (!blocked(next, player_radius, player_height)) player_position = next;
             else player_velocity.z = 0.f;
 
-            // A jump can end over a low crate: resolve penetration on landing.
+            resolve_landing();
+        }
+
+        // A jump can end over a low crate. Push out along the smaller overlap.
+        void resolve_landing()
+        {
             for (const auto& box : obstacles)
             {
                 if (player_height >= box.height) continue;
-                const float dx = box.half_size.x + player_radius - std::abs(player_position.x - box.centre.x);
-                const float dz = box.half_size.z + player_radius - std::abs(player_position.z - box.centre.z);
-                if (dx > 0.f && dz > 0.f && blocked(player_position, player_radius, player_height))
+                const float overlap_x = box.half_size.x + player_radius - std::abs(player_position.x - box.centre.x);
+                const float overlap_z = box.half_size.z + player_radius - std::abs(player_position.z - box.centre.z);
+                if (overlap_x <= 0.f || overlap_z <= 0.f) continue;
+                if (!blocked(player_position, player_radius, player_height)) continue;
+
+                // The extra millimetre keeps the player just outside the surface.
+                if (overlap_x < overlap_z)
                 {
-                    if (dx < dz) { player_position.x += (player_position.x >= box.centre.x ? dx : -dx) + (player_position.x >= box.centre.x ? .001f : -.001f); player_velocity.x = 0.f; }
-                    else { player_position.z += (player_position.z >= box.centre.z ? dz : -dz) + (player_position.z >= box.centre.z ? .001f : -.001f); player_velocity.z = 0.f; }
+                    float correction = overlap_x + .001f;
+                    if (player_position.x < box.centre.x) correction = -correction;
+                    player_position.x += correction;
+                    player_velocity.x = 0.f;
+                }
+                else
+                {
+                    float correction = overlap_z + .001f;
+                    if (player_position.z < box.centre.z) correction = -correction;
+                    player_position.z += correction;
+                    player_velocity.z = 0.f;
                 }
             }
         }
@@ -203,13 +275,29 @@ namespace casino
                 item.active = false;
                 switch (item.kind)
                 {
-                case pickup_kind::chip: score += 50; sounds.push_back(sound_event::collect); break;
-                case pickup_kind::jackpot: score += 200; alarm = true; sounds.push_back(sound_event::alarm); break;
+                case pickup_kind::chip:
+                    score += 50;
+                    sounds.push_back(sound_event::collect);
+                    break;
+                case pickup_kind::jackpot:
+                    score += 200;
+                    alarm = true;
+                    sounds.push_back(sound_event::alarm);
+                    break;
                 case pickup_kind::security_pass:
-                    alarm = false; invulnerable_time = (std::max)(invulnerable_time, pass_grace);
-                    for (auto& g : guards) { g.state = guard_state::returning; g.state_time = 0.f; }
-                    sounds.push_back(sound_event::powerup); break;
-                case pickup_kind::shield: shield_time = shield_seconds; sounds.push_back(sound_event::powerup); break;
+                    alarm = false;
+                    invulnerable_time = (std::max)(invulnerable_time, pass_grace);
+                    for (auto& g : guards)
+                    {
+                        g.state = guard_state::returning;
+                        g.state_time = 0.f;
+                    }
+                    sounds.push_back(sound_event::powerup);
+                    break;
+                case pickup_kind::shield:
+                    shield_time = shield_seconds;
+                    sounds.push_back(sound_event::powerup);
+                    break;
                 }
             }
         }
@@ -225,9 +313,13 @@ namespace casino
                 const vec2 direction{desired.x * std::cos(angle) - desired.z * std::sin(angle),
                                      desired.x * std::sin(angle) + desired.z * std::cos(angle)};
                 if (blocked(g.position + direction * .7f, .4f)) continue;
-                const vec2 next = g.position + direction * ((std::min)(speed * dt, length(target - g.position)));
+                const float distance_to_target = length(target - g.position);
+                const float step_distance = (std::min)(speed * dt, distance_to_target);
+                const vec2 next = g.position + direction * step_distance;
                 if (blocked(next, .4f)) continue;
-                g.position = next; g.heading = std::atan2(direction.x, direction.z); return;
+                g.position = next;
+                g.heading = std::atan2(direction.x, direction.z);
+                return;
             }
         }
 
@@ -240,7 +332,11 @@ namespace casino
             switch (g.state)
             {
             case guard_state::patrol:
-                if (distance < detection) { g.state = guard_state::chase; g.state_time = 0.f; }
+                if (distance < detection)
+                {
+                    g.state = guard_state::chase;
+                    g.state_time = 0.f;
+                }
                 else
                 {
                     if (length(g.position - g.route[g.waypoint]) < .25f) g.waypoint = (g.waypoint + 1) % 4;
@@ -248,22 +344,38 @@ namespace casino
                 }
                 break;
             case guard_state::chase:
-                if (distance > detection + 3.f) { g.state = guard_state::returning; g.state_time = 0.f; }
-                else if (distance < 1.f) { g.state = guard_state::attack; g.state_time = 0.f; }
-                else steer(g, player_position, speed, dt);
+                if (distance > detection + 3.f)
+                {
+                    g.state = guard_state::returning;
+                    g.state_time = 0.f;
+                }
+                else if (distance < 1.f)
+                {
+                    g.state = guard_state::attack;
+                    g.state_time = 0.f;
+                }
+                else
+                {
+                    steer(g, player_position, speed, dt);
+                }
                 break;
             case guard_state::attack:
                 // Telegraph the tag, giving the player time to step or jump away.
                 if (g.state_time >= tag_windup)
                 {
-                    if (distance < 1.25f && player_height < .55f && shield_time <= 0.f && invulnerable_time <= 0.f)
+                    const bool in_reach = distance < 1.25f && player_height < .55f;
+                    const bool protected_from_tag = shield_time > 0.f || invulnerable_time > 0.f;
+                    if (in_reach && !protected_from_tag)
                     {
-                        --health; invulnerable_time = tag_grace; hit_flash = .45f;
+                        --health;
+                        invulnerable_time = tag_grace;
+                        hit_flash = .45f;
                         player_velocity = unit(player_position - g.position) * 9.f;
                         sounds.push_back(sound_event::damage);
                         if (health <= 0) finish(round_state::caught);
                     }
-                    g.state = guard_state::returning; g.state_time = 0.f;
+                    g.state = guard_state::returning;
+                    g.state_time = 0.f;
                 }
                 break;
             case guard_state::returning:
@@ -271,9 +383,15 @@ namespace casino
                 // Recovery prevents repeated contact damage and makes a stolen
                 // security pass useful even if a guard was already pursuing.
                 if (g.state_time > return_pause && length(g.position - g.route[g.waypoint]) < .3f)
-                { g.state = guard_state::patrol; g.state_time = 0.f; }
+                {
+                    g.state = guard_state::patrol;
+                    g.state_time = 0.f;
+                }
                 else if (g.state_time > return_reacquire && distance < detection)
-                { g.state = guard_state::chase; g.state_time = 0.f; }
+                {
+                    g.state = guard_state::chase;
+                    g.state_time = 0.f;
+                }
                 break;
             }
         }

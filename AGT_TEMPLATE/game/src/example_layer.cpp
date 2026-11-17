@@ -8,7 +8,7 @@
 
 namespace
 {
-    constexpr float fixed_step = 1.f / 120.f;
+    const float fixed_step = 1.f / 120.f;
     const glm::vec3 gold{1.f, .72f, .22f};
     const glm::vec3 cyan{.25f, .9f, 1.f};
     const std::array<const char*, 6> sound_names{{"collect", "alarm", "powerup", "damage", "win", "lose"}};
@@ -17,7 +17,10 @@ namespace
     {
         std::vector<engine::mesh::vertex> vertices;
         vertices.reserve(source.vertices.size());
-        for (const auto& v : source.vertices) vertices.emplace_back(v.position, v.normal, v.uv);
+        for (const auto& v : source.vertices)
+        {
+            vertices.push_back(engine::mesh::vertex(v.position, v.normal, v.uv));
+        }
         return engine::mesh::create(vertices, source.indices);
     }
 
@@ -67,23 +70,38 @@ void example_layer::load_assets()
     casino::quad(ui_quad, {-.5f,-.5f,0.f}, {.5f,-.5f,0.f}, {.5f,.5f,0.f}, {-.5f,.5f,0.f});
     m_quad = upload(ui_quad);
     m_white = engine::texture_2d::create(255, 255, 255);
-    m_paving = texture_or_white(paving); m_felt = texture_or_white(felt);
-    m_metal = texture_or_white(metal); m_chip = texture_or_white(chip);
-    m_crate = texture_or_white(crate); m_sign = texture_or_white(sign, true);
+    m_paving = texture_or_white(paving);
+    m_felt = texture_or_white(felt);
+    m_metal = texture_or_white(metal);
+    m_chip = texture_or_white(chip);
+    m_crate = texture_or_white(crate);
+    m_sign = texture_or_white(sign, true);
     m_exit = texture_or_white(exit_sign, true);
     std::vector<engine::ref<engine::texture_2d>> sky_textures;
     for (const char* path : sky) sky_textures.push_back(texture_or_white(path, true));
     m_skybox = engine::skybox::create(60.f, sky_textures);
-    m_models = {{load_model(chair), load_model(lamp), load_model(planter), load_model(thief), load_model(guard)}};
+    m_models[0] = load_model(chair);
+    m_models[1] = load_model(lamp);
+    m_models[2] = load_model(planter);
+    m_models[3] = load_model(thief);
+    m_models[4] = load_model(guard);
     m_audio = engine::audio_manager::instance();
     m_audio_ready = m_audio->init();
-    if (!m_audio_ready) { std::cerr << "[casino] Audio unavailable; continuing silently.\n"; return; }
+    if (!m_audio_ready)
+    {
+        std::cerr << "[casino] Audio unavailable; continuing silently.\n";
+        return;
+    }
     for (size_t i = 0; i < sound_names.size(); ++i)
         if (std::filesystem::is_regular_file(event_sounds[i]))
             m_sound_loaded[i] = m_audio->load_sound(event_sounds[i], engine::sound_type::event, sound_names[i]);
     if (std::filesystem::is_regular_file(music))
         m_music_loaded = m_audio->load_sound(music, engine::sound_type::track, "ambience");
-    if (m_music_loaded) { m_audio->play("ambience"); m_audio->volume("ambience", .22f); }
+    if (m_music_loaded)
+    {
+        m_audio->play("ambience");
+        m_audio->volume("ambience", .22f);
+    }
 }
 
 example_layer::prop_model example_layer::load_model(const casino::assets::model_slot& slot)
@@ -91,7 +109,10 @@ example_layer::prop_model example_layer::load_model(const casino::assets::model_
     prop_model result;
     if (!slot.path[0]) return result;
     if (!std::filesystem::is_regular_file(slot.path))
-    { std::cerr << "[casino] Model not found: " << slot.path << "; using a primitive.\n"; return result; }
+    {
+        std::cerr << "[casino] Model not found: " << slot.path << "; using a primitive.\n";
+        return result;
+    }
     const auto model = engine::model::create(slot.path);
     if (model->meshes().empty() || model->size().y < .001f) return result;
     engine::game_object_properties props;
@@ -100,7 +121,10 @@ example_layer::prop_model example_layer::load_model(const casino::assets::model_
     props.mesh_materials = model->mesh_materials();
     // Supply a safe diffuse fallback for models that only contain colours.
     // Proper replacement textures are still needed for the final artwork.
-    for (auto& mat : props.mesh_materials) if (!mat.diffuse) mat.diffuse = m_white;
+    for (auto& mat : props.mesh_materials)
+    {
+        if (!mat.diffuse) mat.diffuse = m_white;
+    }
     result.object = engine::game_object::create(props);
     result.scale = slot.height / model->size().y;
     result.origin = model->offset() - glm::vec3(0.f, model->size().y * .5f, 0.f);
@@ -110,7 +134,10 @@ example_layer::prop_model example_layer::load_model(const casino::assets::model_
 
 void example_layer::reset_round()
 {
-    m_game.reset(); m_accumulator = 0.f; m_jump_requested = false; m_camera_yaw = 0.f;
+    m_game.reset();
+    m_accumulator = 0.f;
+    m_jump_requested = false;
+    m_camera_yaw = 0.f;
     m_camera_position = {0.f, 12.f, 21.f};
     update_camera(0.f);
 }
@@ -139,7 +166,11 @@ void example_layer::on_update(const engine::timestep& time_step)
             m_accumulator -= fixed_step;
         }
     }
-    else { m_accumulator = 0.f; m_jump_requested = false; }
+    else
+    {
+        m_accumulator = 0.f;
+        m_jump_requested = false;
+    }
     update_camera(dt);
     play_events();
     if (m_audio_ready) m_audio->on_update();
@@ -151,12 +182,21 @@ void example_layer::update_camera(float dt)
     const auto height = engine::application::window().height();
     if (width && height && (m_width != width || m_height != height))
     {
-        m_width = width; m_height = height;
+        m_width = width;
+        m_height = height;
         m_camera = engine::perspective_camera(static_cast<float>(width), static_cast<float>(height), 55.f, .1f, 180.f);
     }
     const glm::vec3 target{m_game.player_position.x, .65f, m_game.player_position.z};
     const glm::vec3 desired = target + glm::vec3(13.f * std::sin(m_camera_yaw), 12.f, 13.f * std::cos(m_camera_yaw));
-    m_camera_position = dt > 0.f ? glm::mix(m_camera_position, desired, 1.f - std::exp(-7.f * dt)) : desired;
+    if (dt > 0.f)
+    {
+        const float follow_amount = 1.f - std::exp(-7.f * dt);
+        m_camera_position = glm::mix(m_camera_position, desired, follow_amount);
+    }
+    else
+    {
+        m_camera_position = desired;
+    }
     // Shake affects the view only; it cannot alter gameplay or accumulate drift.
     const float shake = m_game.state == casino::round_state::playing ? m_game.hit_flash * .35f : 0.f;
     const glm::vec3 offset{std::sin(m_visual_time * 83.f) * shake, std::cos(m_visual_time * 71.f) * shake, 0.f};
@@ -166,11 +206,13 @@ void example_layer::update_camera(float dt)
 void example_layer::play_events()
 {
     if (m_audio_ready && !m_muted)
+    {
         for (const auto event : m_game.sounds)
         {
             const auto index = static_cast<size_t>(event);
             if (m_sound_loaded[index]) m_audio->play(sound_names[index]);
         }
+    }
     m_game.sounds.clear();
 }
 
@@ -210,8 +252,18 @@ void example_layer::draw_actor(casino::vec2 p, float height, float heading, bool
 {
     const int slot = guard ? 4 : 3;
     const glm::vec3 base{p.x, height, p.z};
-    if (m_models[slot].object) { draw_model(slot, base, heading); return; }
-    const glm::vec3 colour = guard ? (attacking ? glm::vec3(1.f,.18f,.1f) : glm::vec3(.25f,.42f,.8f)) : glm::vec3(.16f,.18f,.22f);
+    if (m_models[slot].object)
+    {
+        draw_model(slot, base, heading);
+        return;
+    }
+
+    glm::vec3 colour{.16f, .18f, .22f}; // Thief's dark clothing.
+    if (guard)
+    {
+        colour = {.25f, .42f, .8f}; // Security blue.
+        if (attacking) colour = {1.f, .18f, .1f}; // Warn before a tag.
+    }
     draw_mesh(m_box, base + glm::vec3(0,.68f,0), {.62f,.92f,.46f}, colour, m_metal, heading);
     draw_mesh(m_cylinder, base + glm::vec3(0,1.38f,0), {.45f,.42f,.45f}, guard ? gold : cyan, m_metal, heading);
     const glm::vec3 forward{std::sin(heading),0.f,std::cos(heading)};
@@ -363,7 +415,10 @@ void example_layer::draw_hud()
         {
             const bool won = m_game.state == casino::round_state::escaped;
             text(won ? "YOU GOT AWAY" : "THE HOUSE WINS",220,280,.85f,glm::vec4(gold,1));
-            text(won ? "You escaped with the chips." : (m_game.state == casino::round_state::caught ? "Security caught you." : "Time ran out."),220,350,.5f);
+            std::string result_message = "Time ran out.";
+            if (won) result_message = "You escaped with the chips.";
+            else if (m_game.state == casino::round_state::caught) result_message = "Security caught you.";
+            text(result_message,220,350,.5f);
             text("Collected: $" + std::to_string(m_game.score),220,405,.5f);
             text("ENTER / R to try again     ESC to quit",220,510,.55f,glm::vec4(cyan,1));
         }
