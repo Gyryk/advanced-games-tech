@@ -1,7 +1,7 @@
 # Placeholder asset provenance
 
 The models, PNG textures and WAV files in this directory were generated from
-scratch with Python during AI-assisted development on 14 November 2026. They
+scratch with Python during AI-assisted development. They
 were not downloaded from an asset marketplace. No third-party asset licence
 is claimed for these original generated outputs.
 
